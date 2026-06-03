@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, colorchooser, messagebox
+import math
 
 from algorithms import *
 from shapes import *
@@ -15,9 +16,10 @@ class MiniPaint:
 
         self.root.title("Mini Paint 2D")
         self.root.geometry("1400x900")
-        self.root.configure(bg="#1e1e1e")
+        self.root.configure(bg="#1E1E2E")
 
         self.current_tool = "Select"
+        self.tool_buttons = {}
 
         self.shapes = []
 
@@ -41,9 +43,22 @@ class MiniPaint:
 
         self.line_style = "solid"
 
+        # Polygon sides
+        self.polygon_sides = 5
+
+        # Color scheme
+        self.bg_dark = "#1E1E2E"
+        self.bg_panel = "#24273A"
+        self.bg_button = "#363A4F"
+        self.bg_button_hover = "#494D64"
+        self.fg_text = "#e6edf3"
+        self.accent_color = "#8AADF4"
+
         self.create_menu()
 
         self.create_layout()
+        
+        self.configure_styles()
 
         self.create_toolbar()
 
@@ -59,13 +74,23 @@ class MiniPaint:
 
     def create_menu(self):
 
-        menubar = tk.Menu(self.root)
+        menubar = tk.Menu(
+            self.root,
+            bg=self.bg_panel,
+            fg=self.fg_text,
+            activebackground=self.accent_color,
+            activeforeground="#1E1E2E"
+        )
 
         # FILE
 
         file_menu = tk.Menu(
             menubar,
-            tearoff=0
+            tearoff=0,
+            bg=self.bg_panel,
+            fg=self.fg_text,
+            activebackground=self.accent_color,
+            activeforeground="#1E1E2E"
         )
 
         file_menu.add_command(
@@ -92,7 +117,11 @@ class MiniPaint:
 
         edit_menu = tk.Menu(
             menubar,
-            tearoff=0
+            tearoff=0,
+            bg=self.bg_panel,
+            fg=self.fg_text,
+            activebackground=self.accent_color,
+            activeforeground="#1E1E2E"
         )
 
         edit_menu.add_command(
@@ -119,7 +148,11 @@ class MiniPaint:
 
         transform_menu = tk.Menu(
             menubar,
-            tearoff=0
+            tearoff=0,
+            bg=self.bg_panel,
+            fg=self.fg_text,
+            activebackground=self.accent_color,
+            activeforeground="#1E1E2E"
         )
 
         transform_menu.add_command(
@@ -191,7 +224,11 @@ class MiniPaint:
         # ANIMATION
         animation_menu = tk.Menu(
             menubar,
-            tearoff=0
+            tearoff=0,
+            bg=self.bg_panel,
+            fg=self.fg_text,
+            activebackground=self.accent_color,
+            activeforeground="#1E1E2E"
         )
 
         animation_menu.add_command(
@@ -215,7 +252,7 @@ class MiniPaint:
 
         self.toolbar_frame = tk.Frame(
             self.root,
-            bg="#252526",
+            bg=self.bg_panel,
             width=180
         )
 
@@ -226,7 +263,7 @@ class MiniPaint:
 
         self.property_frame = tk.Frame(
             self.root,
-            bg="#252526",
+            bg=self.bg_panel,
             width=220
         )
 
@@ -237,7 +274,7 @@ class MiniPaint:
 
         self.center_frame = tk.Frame(
             self.root,
-            bg="#1e1e1e"
+            bg=self.bg_dark
         )
 
         self.center_frame.pack(
@@ -246,135 +283,230 @@ class MiniPaint:
             expand=True
         )
 
+    def configure_styles(self):
+        """Configure ttk widget styles"""
+        style = ttk.Style()
+        style.theme_use("clam")
+        
+        style.configure(
+            "TCombobox",
+            fieldbackground=self.bg_button,
+            background=self.bg_button,
+            foreground=self.fg_text,
+            arrowcolor=self.accent_color,
+            bordercolor=self.bg_button,
+            relief="flat"
+        )
+        
+        style.map(
+            "TCombobox",
+            fieldbackground=[("active", self.bg_button_hover)],
+            background=[("active", self.bg_button_hover)]
+        )
+
     def create_toolbar(self):
 
-        tk.Label(
+        # Header
+        header = tk.Label(
             self.toolbar_frame,
-            text="TOOLS",
-            bg="#252526",
-            fg="white",
-            font=("Segoe UI", 11, "bold")
-        ).pack(
-            pady=10
+            text="Tools",
+            bg=self.bg_panel,
+            fg=self.accent_color,
+            font=("Segoe UI", 12, "bold")
+        )
+        header.pack(
+            pady=12,
+            padx=10
         )
 
         tools = [
-
-            "Select",
-
-            "Point",
-
-            "Line",
-
-            "Rectangle",
-
-            "Circle",
-
-            "Ellipse",
-
-            "Triangle",
-
-            "Polygon",
-
-            "Rhombus",
-
-            "Parallelogram"
+            ("Select", "↖️"),
+            ("Point", "●"),
+            ("Line", "∕"),
+            ("Rectangle", "▭"),
+            ("Circle", "◯"),
+            ("Ellipse", "◯"),
+            ("Triangle", "△"),
+            ("Polygon", "◇"),
+            ("Rhombus", "◊"),
+            ("Parallelogram", "▭")
         ]
 
-        for tool in tools:
-
+        for tool, icon in tools:
             btn = tk.Button(
                 self.toolbar_frame,
-                text=tool,
-                bg="#3c3c3c",
-                fg="white",
+                text=f"{icon}  {tool}",
+                bg=self.bg_button,
+                fg=self.fg_text,
                 relief="flat",
-                command=lambda t=tool:
-                self.set_tool(t)
+                border=0,
+                padx=8,
+                pady=8,
+                font=("Segoe UI", 9),
+                command=lambda t=tool: self.set_tool(t),
+                cursor="hand2"
             )
 
             btn.pack(
                 fill="x",
-                padx=10,
-                pady=2
+                padx=8,
+                pady=3
             )
+            
+            self.tool_buttons[tool] = btn
+            
+            # Add hover effects
+            btn.bind("<Enter>", lambda e, b=btn: self._on_button_hover(b, True))
+            btn.bind("<Leave>", lambda e, b=btn, t=tool: self._on_button_hover(b, False, t))
 
     def create_property_panel(self):
 
-        tk.Label(
+        header = tk.Label(
             self.property_frame,
-            text="PROPERTIES",
-            bg="#252526",
-            fg="white",
-            font=("Segoe UI", 11, "bold")
-        ).pack(
-            pady=10
+            text="Properties",
+            bg=self.bg_panel,
+            fg=self.accent_color,
+            font=("Segoe UI", 12, "bold")
+        )
+        header.pack(
+            pady=12,
+            padx=10
         )
 
-        tk.Button(
+        # Stroke Color Button
+        stroke_btn = tk.Button(
             self.property_frame,
-            text="Stroke Color",
-            command=self.choose_stroke
-        ).pack(
+            text="🖌️  Stroke Color",
+            bg=self.bg_button,
+            fg=self.fg_text,
+            relief="flat",
+            border=0,
+            padx=8,
+            pady=8,
+            font=("Segoe UI", 9),
+            command=self.choose_stroke,
+            cursor="hand2"
+        )
+        stroke_btn.pack(
             fill="x",
-            padx=10,
+            padx=8,
             pady=5
         )
+        stroke_btn.bind("<Enter>", lambda e: self._on_prop_hover(stroke_btn, True))
+        stroke_btn.bind("<Leave>", lambda e: self._on_prop_hover(stroke_btn, False))
 
-        tk.Button(
+        # Fill Color Button
+        fill_btn = tk.Button(
             self.property_frame,
-            text="Fill Color",
-            command=self.choose_fill
-        ).pack(
+            text="💧  Fill Color",
+            bg=self.bg_button,
+            fg=self.fg_text,
+            relief="flat",
+            border=0,
+            padx=8,
+            pady=8,
+            font=("Segoe UI", 9),
+            command=self.choose_fill,
+            cursor="hand2"
+        )
+        fill_btn.pack(
             fill="x",
-            padx=10,
+            padx=8,
             pady=5
         )
+        fill_btn.bind("<Enter>", lambda e: self._on_prop_hover(fill_btn, True))
+        fill_btn.bind("<Leave>", lambda e: self._on_prop_hover(fill_btn, False))
 
+        # Thickness label
         tk.Label(
             self.property_frame,
-            text="Thickness",
-            bg="#252526",
-            fg="white"
-        ).pack()
+            text="📏  Thickness",
+            bg=self.bg_panel,
+            fg=self.fg_text,
+            font=("Segoe UI", 9, "bold")
+        ).pack(
+            pady=(12, 4),
+            padx=10,
+            anchor="w"
+        )
 
         self.width_var = tk.IntVar(
             value=2
         )
 
-        ttk.Combobox(
+        width_combo = ttk.Combobox(
             self.property_frame,
             textvariable=self.width_var,
-            values=[1,2,3,5,8,10]
-        ).pack(
+            values=[1, 2, 3, 5, 8, 10],
+            state="readonly",
+            font=("Segoe UI", 9)
+        )
+        width_combo.pack(
             fill="x",
-            padx=10
+            padx=8
         )
 
+        # Line Style label
         tk.Label(
             self.property_frame,
-            text="Line Style",
-            bg="#252526",
-            fg="white"
+            text="▬ Line Style",
+            bg=self.bg_panel,
+            fg=self.fg_text,
+            font=("Segoe UI", 9, "bold")
         ).pack(
-            pady=(10,0)
+            pady=(12, 4),
+            padx=10,
+            anchor="w"
         )
 
         self.style_var = tk.StringVar(
             value="solid"
         )
 
-        ttk.Combobox(
+        style_combo = ttk.Combobox(
             self.property_frame,
             textvariable=self.style_var,
             values=[
                 "solid",
                 "dashed"
-            ]
-        ).pack(
-            fill="x",
-            padx=10
+            ],
+            state="readonly",
+            font=("Segoe UI", 9)
         )
+        style_combo.pack(
+            fill="x",
+            padx=8
+        )
+
+        # Polygon Sides label
+        tk.Label(
+            self.property_frame,
+            text="⬡ Polygon Sides",
+            bg=self.bg_panel,
+            fg=self.fg_text,
+            font=("Segoe UI", 9, "bold")
+        ).pack(
+            pady=(12, 4),
+            padx=10,
+            anchor="w"
+        )
+
+        self.polygon_var = tk.IntVar(
+            value=5
+        )
+
+        polygon_combo = ttk.Combobox(
+            self.property_frame,
+            textvariable=self.polygon_var,
+            values=[3, 4, 5, 6, 7, 8, 10, 12],
+            state="readonly",
+            font=("Segoe UI", 9)
+        )
+        polygon_combo.pack(
+            fill="x",
+            padx=8
+        )
+        polygon_combo.bind("<<ComboboxSelected>>", lambda e: self._update_polygon_sides())
         
     # Canvas
     def create_canvas(self):
@@ -394,19 +526,22 @@ class MiniPaint:
 
         self.status_var = tk.StringVar()
 
-        self.status_var.set("Ready")
+        self.status_var.set("Ready | Tool: Select | Objects: 0")
 
         self.statusbar = tk.Label(
             self.root,
             textvariable=self.status_var,
             anchor="w",
-            bg="#252526",
-            fg="white"
+            bg=self.bg_panel,
+            fg=self.accent_color,
+            font=("Segoe UI", 9)
         )
 
         self.statusbar.pack(
             side="bottom",
-            fill="x"
+            fill="x",
+            padx=10,
+            pady=6
         )
 
     def bind_events(self):
@@ -429,11 +564,6 @@ class MiniPaint:
         self.canvas.bind(
             "<Motion>",
             self.mouse_move
-        )
-
-        self.canvas.bind(
-            "<Double-Button-1>",
-            self.finish_polygon
         )
 
         self.root.bind(
@@ -481,6 +611,37 @@ class MiniPaint:
     def set_tool(self, tool):
 
         self.current_tool = tool
+        try:
+            self.status_var.set(f"Tool: {tool} | Objects: {len(self.shapes)}")
+        except:
+            pass
+        
+        # Update button styling
+        for tool_name, btn in self.tool_buttons.items():
+            if tool_name == tool:
+                btn.config(bg=self.accent_color, fg="#1E1E2E", font=("Segoe UI", 9, "bold"))
+            else:
+                btn.config(bg=self.bg_button, fg=self.fg_text, font=("Segoe UI", 9))
+
+    def _on_button_hover(self, button, is_hover, tool_name=None):
+        """Handle hover effect for tool buttons"""
+        if is_hover:
+            if self.current_tool != tool_name:
+                button.config(bg=self.bg_button_hover)
+        else:
+            if self.current_tool != tool_name:
+                button.config(bg=self.bg_button)
+
+    def _on_prop_hover(self, button, is_hover):
+        """Handle hover effect for property buttons"""
+        if is_hover:
+            button.config(bg=self.bg_button_hover)
+        else:
+            button.config(bg=self.bg_button)
+
+    def _update_polygon_sides(self):
+        """Update polygon sides from combobox"""
+        self.polygon_sides = self.polygon_var.get()
 
     def choose_stroke(self):
 
@@ -498,6 +659,7 @@ class MiniPaint:
 
     def mouse_move(self, event):
 
+        # Update status bar
         self.status_var.set(
             f"Tool: {self.current_tool} | "
             f"X:{event.x} Y:{event.y} | "
@@ -535,17 +697,6 @@ class MiniPaint:
             )
 
             self.redraw()
-
-            return
-
-        if self.current_tool == "Polygon":
-
-            self.temp_points.append(
-                (
-                    event.x,
-                    event.y
-                )
-            )
 
             return
 
@@ -666,6 +817,60 @@ class MiniPaint:
                 width=self.width_var.get()
             )
 
+        elif tool == "Triangle":
+
+            x1 = self.start_x
+            y1 = self.start_y
+
+            x2 = event.x
+            y2 = event.y
+
+            # Triangle: top center, bottom left, bottom right
+            p1 = ((x1 + x2) / 2, y1)
+            p2 = (x1, y2)
+            p3 = (x2, y2)
+
+            pts = [
+                p1[0], p1[1],
+                p2[0], p2[1],
+                p3[0], p3[1]
+            ]
+
+            self.preview_id = self.canvas.create_polygon(
+                pts,
+                outline=self.stroke_color,
+                fill="",
+                width=self.width_var.get()
+            )
+
+        elif tool == "Polygon":
+
+            x1 = self.start_x
+            y1 = self.start_y
+
+            x2 = event.x
+            y2 = event.y
+
+            # Calculate center and radius
+            cx = (x1 + x2) / 2
+            cy = (y1 + y2) / 2
+            radius = distance(x1, y1, x2, y2) / 2
+
+            # Generate polygon points
+            pts = []
+            for i in range(self.polygon_sides):
+                angle = (2 * math.pi * i) / self.polygon_sides - (math.pi / 2)
+                px = cx + radius * math.cos(angle)
+                py = cy + radius * math.sin(angle)
+                pts.extend([px, py])
+
+            self.preview_id = self.canvas.create_polygon(
+                pts,
+                outline=self.stroke_color,
+                fill="",
+                width=self.width_var.get()
+            )
+
     def mouse_up(self, event):
 
         if self.current_tool in [
@@ -674,6 +879,7 @@ class MiniPaint:
             "Circle",
             "Ellipse",
             "Triangle",
+            "Polygon",
             "Rhombus",
             "Parallelogram"
         ]:
@@ -783,6 +989,23 @@ class MiniPaint:
                 self.style_var.get()
             )
 
+        elif tool == "Polygon":
+
+            # Calculate center and radius
+            cx = (x1 + x2) / 2
+            cy = (y1 + y2) / 2
+            radius = distance(x1, y1, x2, y2) / 2
+
+            shape = create_regular_polygon(
+                (cx, cy),
+                radius,
+                self.polygon_sides,
+                self.stroke_color,
+                self.fill_color,
+                self.width_var.get(),
+                self.style_var.get()
+            )
+
         elif tool == "Rhombus":
 
             shape = create_rhombus(
@@ -814,32 +1037,8 @@ class MiniPaint:
             self.redraw()
 
     def finish_polygon(self, event):
-
-        if self.current_tool != "Polygon":
-            return
-
-        if len(self.temp_points) < 3:
-            return
-
-        self.history.save_state(
-            self.shapes
-        )
-
-        poly = create_polygon(
-            self.temp_points.copy(),
-            self.stroke_color,
-            self.fill_color,
-            self.width_var.get(),
-            self.style_var.get()
-        )
-
-        self.shapes.append(
-            poly
-        )
-
-        self.temp_points.clear()
-
-        self.redraw()
+        """Deprecated: Polygon is now drag-based like other shapes"""
+        pass
 
     def draw_pixel(
         self,

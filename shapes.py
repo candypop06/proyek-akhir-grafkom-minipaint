@@ -115,6 +115,34 @@ def create_polygon(
         line_style
     )
 
+def create_regular_polygon(
+    center,
+    radius,
+    sides,
+    stroke_color="black",
+    fill_color="",
+    line_width=2,
+    line_style="solid"
+):
+    """Create a regular polygon with n sides"""
+    cx, cy = center
+    points = []
+    
+    for i in range(sides):
+        angle = (2 * math.pi * i) / sides - (math.pi / 2)  # Start from top
+        x = cx + radius * math.cos(angle)
+        y = cy + radius * math.sin(angle)
+        points.append((x, y))
+    
+    return create_shape(
+        "polygon",
+        points,
+        stroke_color,
+        fill_color,
+        line_width,
+        line_style
+    )
+
 def create_rhombus(
     p1,
     p2,

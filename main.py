@@ -417,6 +417,28 @@ class MiniPaint:
         fill_btn.bind("<Enter>", lambda e: self._on_prop_hover(fill_btn, True))
         fill_btn.bind("<Leave>", lambda e: self._on_prop_hover(fill_btn, False))
 
+        # Clear Fill Button
+        clear_fill_btn = tk.Button(
+            self.property_frame,
+            text="⊘  No Fill",
+            bg=self.bg_button,
+            fg=self.fg_text,
+            relief="flat",
+            border=0,
+            padx=8,
+            pady=6,
+            font=("Segoe UI", 9),
+            command=self.clear_fill_selected,
+            cursor="hand2"
+        )
+        clear_fill_btn.pack(
+            fill="x",
+            padx=8,
+            pady=(0, 5)
+        )
+        clear_fill_btn.bind("<Enter>", lambda e: self._on_prop_hover(clear_fill_btn, True))
+        clear_fill_btn.bind("<Leave>", lambda e: self._on_prop_hover(clear_fill_btn, False))
+
         # Thickness label
         tk.Label(
             self.property_frame,
@@ -445,6 +467,7 @@ class MiniPaint:
             fill="x",
             padx=8
         )
+        width_combo.bind("<<ComboboxSelected>>", lambda e: self._apply_width_to_selected())
 
         # Line Style label
         tk.Label(
@@ -477,6 +500,7 @@ class MiniPaint:
             fill="x",
             padx=8
         )
+        style_combo.bind("<<ComboboxSelected>>", lambda e: self._apply_style_to_selected())
 
         # Polygon Sides label
         tk.Label(
@@ -643,12 +667,49 @@ class MiniPaint:
         """Update polygon sides from combobox"""
         self.polygon_sides = self.polygon_var.get()
 
+    def _apply_style_to_selected(self):
+        """Apply line style change to selected shape"""
+        new_style = self.style_var.get()
+        self.line_style = new_style
+        if self.selected_shape:
+            self.history.save_state(self.shapes)
+            idx = self.shapes.index(self.selected_shape)
+            self.shapes[idx]["line_style"] = new_style
+            self.selected_shape = self.shapes[idx]
+            self.redraw()
+
+    def _apply_width_to_selected(self):
+        """Apply line width change to selected shape"""
+        new_width = self.width_var.get()
+        self.line_width = new_width
+        if self.selected_shape:
+            self.history.save_state(self.shapes)
+            idx = self.shapes.index(self.selected_shape)
+            self.shapes[idx]["line_width"] = new_width
+            self.selected_shape = self.shapes[idx]
+            self.redraw()
+
+    def _sync_properties_panel(self, shape):
+        """Sync property panel controls to reflect selected shape's properties"""
+        if shape:
+            self.stroke_color = shape.get("stroke_color", self.stroke_color)
+            self.fill_color = shape.get("fill_color", self.fill_color)
+            self.width_var.set(shape.get("line_width", 2))
+            self.style_var.set(shape.get("line_style", "solid"))
+
     def choose_stroke(self):
 
         color = colorchooser.askcolor()[1]
 
         if color:
             self.stroke_color = color
+            # Apply to selected shape if any
+            if self.selected_shape:
+                self.history.save_state(self.shapes)
+                idx = self.shapes.index(self.selected_shape)
+                self.shapes[idx]["stroke_color"] = color
+                self.selected_shape = self.shapes[idx]
+                self.redraw()
 
     def choose_fill(self):
 
@@ -656,6 +717,23 @@ class MiniPaint:
 
         if color:
             self.fill_color = color
+            # Apply to selected shape if any
+            if self.selected_shape:
+                self.history.save_state(self.shapes)
+                idx = self.shapes.index(self.selected_shape)
+                self.shapes[idx]["fill_color"] = color
+                self.selected_shape = self.shapes[idx]
+                self.redraw()
+
+    def clear_fill_selected(self):
+        """Remove fill from selected shape"""
+        self.fill_color = ""
+        if self.selected_shape:
+            self.history.save_state(self.shapes)
+            idx = self.shapes.index(self.selected_shape)
+            self.shapes[idx]["fill_color"] = ""
+            self.selected_shape = self.shapes[idx]
+            self.redraw()
 
     def mouse_move(self, event):
 
@@ -1250,6 +1328,9 @@ class MiniPaint:
 
                 self.selected_shape = shape
                 break
+
+        if self.selected_shape:
+            self._sync_properties_panel(self.selected_shape)
 
         self.redraw()
 
